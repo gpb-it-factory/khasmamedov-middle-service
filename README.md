@@ -108,6 +108,6 @@ deactivate Telegram
      `docker rm 23a960d080bd5798917cb70c5a33992c3ae2a715a9cd0187822cab80f632973e`
 
 ### За_что_отвечает_middle-service
-Пока - функция одна:
+Пока - функция одна:  
 ![gandalf_yapfiles.ru.gif](images%2Fgandalf_yapfiles.ru.gif)
 
