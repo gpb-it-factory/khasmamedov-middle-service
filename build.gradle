@@ -28,6 +28,10 @@ dependencies {
 
 	implementation "org.openapitools:openapi-generator-gradle-plugin:7.5.0"
 	implementation 'io.swagger.core.v3:swagger-annotations:2.2.21'
+
+	configurations.all {
+		exclude group: 'org.slf4j', module: 'slf4j-simple'
+	}
 }
 
 tasks.named('test') {

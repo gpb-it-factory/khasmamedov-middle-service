@@ -21,16 +21,16 @@ public class MockUserBackController {
 
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody CreateUserRequest request) {
-        log.info("Сервис С (бэк) получил запрос с миддл-сервиса, обрабатываю... ");
-        log.info("ЮзерАйди: " + request.userId());
+        log.info("Getting request from service B, processing... ");
+        log.info("userID is: " + request.userId());
         if (random.nextBoolean()) {
-            log.info("Не смог получить Айди - Произошло что-то ужасное, но станет лучше, честно!");
-            log.info("Возвращаю 204...");
+            log.info("Cannot generate UUID...");
+            log.info("Returning 204...");
             return ResponseEntity.noContent().build();
         } else {
             UserResponse response = new UserResponse(UUID.randomUUID());
-            log.info("Сгенерировал UUID: " + response.userId());
-            log.info("Возвращаю 200...");
+            log.info("Generating UUID... " + response.userId());
+            log.info("Returning 200...");
             return ResponseEntity.ok(response);
         }
     }

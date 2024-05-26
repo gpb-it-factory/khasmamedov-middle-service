@@ -27,22 +27,22 @@ public class UserMiddleService {
     }
 
     public Optional<UserResponse> createUser(CreateUserRequest request) {
-        String url = backUrl + "/mock/users";
+        String url = backUrl + "/users";
         try {
-            log.info("Шлю запрос на сервис С (бэк): {}", url);
+            log.info("Sending query to C service: {}", url);
             ResponseEntity<UserResponse> response = restTemplate.postForEntity(url, request, UserResponse.class);
             if (response.getStatusCode() == HttpStatus.NO_CONTENT) {
-                log.info("Что-то пошло не так, вернули 204");
+                log.info("Something is wrong with registration, 204 code is returned");
                 return Optional.empty();
             } else if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                log.info("Вернулся айди: {}", response.getBody().userId());
+                log.info("The returned ID is: {}", response.getBody().userId());
                 return Optional.of(response.getBody());
             } else {
-                log.error("Что-то пошло совсем не так, ошибка!: {}", response.getStatusCode());
+                log.error("Something is wrong wuth registration, getting code: {}", response.getStatusCode());
                 return Optional.empty();
             }
         } catch (Exception e) {
-            log.error("Запрос не удался совсем, получили ошибку ", e);
+            log.error("Something is VERY wrong, the problem: ", e);
             return Optional.empty();
         }
     }
