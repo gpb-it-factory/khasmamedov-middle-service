@@ -25,6 +25,9 @@ dependencies {
 
 	testCompileOnly 'org.projectlombok:lombok:1.18.32'
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.32'
+
+	implementation "org.openapitools:openapi-generator-gradle-plugin:7.5.0"
+	implementation 'io.swagger.core.v3:swagger-annotations:2.2.21'
 }
 
 tasks.named('test') {

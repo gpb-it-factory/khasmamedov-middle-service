@@ -1,1 +1,6 @@
 #empty so far
+server:
+  port: 8081
+
+service-c:
+  url: http://localhost:8082
