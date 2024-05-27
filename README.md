@@ -96,7 +96,7 @@ deactivate Telegram
 
 * Собрать проект в готовый к исполнению файл   
   ````gradle build````  (если есть установленный грэдл)
-    + ИЛИ же ````gradlew build````  (если Windows и грэдла нет)
+    + ИЛИ же ````.\gradlew build````  (если Windows и грэдла нет)
     + ИЛИ же ````chmod +x gradlew```` ````./gradlew build```` (если Linux и грэдла нет)
 * Запустить его:  
   ````java -jar ./build/libs/khasmamedov-middle-service-0.0.1-SNAPSHOT.jar````  

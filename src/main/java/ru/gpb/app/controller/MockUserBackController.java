@@ -14,19 +14,19 @@ import java.util.Random;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/mock/users")
+@RequestMapping("/mock")
 @Slf4j
 public class MockUserBackController {
 
     private final Random random = new Random();
 
-    @PostMapping
+    @PostMapping("/users")
     public ResponseEntity<?> createUser(@RequestBody CreateUserRequest request) {
-        log.info("Получил запрос от миддл-сервиса... ");
-        log.info("Полученный юзерАйди: {}", request.userId());
+        log.info("Getting query from middle-service... ");
+        log.info("Got userId: {}", request.userId());
         if (random.nextBoolean()) {
-            log.info("Не могу сгенерировать UUID...");
-            log.info("Возвращаю ошибку...");
+            log.info("Cannot generate UUID...");
+            log.info("Returning error...");
             Error error = new Error(
                     "Произошло что-то ужасное, но станет лучше, честно",
                     "GeneralError",
@@ -35,7 +35,7 @@ public class MockUserBackController {
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         } else {
-            log.info("Пользователь создан успешно");
+            log.info("User is successfully created");
             return ResponseEntity.noContent().build();
         }
     }
