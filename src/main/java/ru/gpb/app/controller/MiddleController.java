@@ -29,16 +29,18 @@ public class MiddleController {
 
     @PostMapping("/users")
     public ResponseEntity<?> createUser(@RequestBody CreateUserRequest request) {
-        boolean userCreated = userMiddleService.createUser(request);
-        if (userCreated) {
-            return ResponseEntity.noContent().build();
-        } else {
-            Error error = new Error(
-                    "Ошибка регистрации пользователя",
-                    "UserCreationError",
-                    "500",
-                    UUID.randomUUID()
-            );
+        try {
+            boolean userCreated = userMiddleService.createUser(request);
+            if (userCreated) {
+                return ResponseEntity.noContent().build();
+            } else {
+                Error error = new Error("Ошибка регистрации пользователя", "UserCreationError", "500", UUID.randomUUID());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(error);
+            }
+        } catch (Exception e) {
+            Error error = new Error("Произошло что-то ужасное, но станет лучше, честно", "GeneralError", "123", UUID.randomUUID());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(error);
