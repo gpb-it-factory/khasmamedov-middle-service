@@ -10,6 +10,3 @@ server:
 spring:
   messages:
     encoding: UTF-8
-
-backend-service-c:
-  url: http://localhost:8081/mock
