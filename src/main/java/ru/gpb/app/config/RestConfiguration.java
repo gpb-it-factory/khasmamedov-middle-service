@@ -10,12 +10,16 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 
+/**
+ * примечание для будущей разработки. Должно быть
+ * @Value("${backend-service-c.url}") String backUrl, и соответственно в ЮРИ - backUrl
+ */
 @Configuration
 public class RestConfiguration {
     @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder, @Value("${backend-service-c.url}") String backUrl) {
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder
-                .rootUri(backUrl)
+                .rootUri("http://localhost:8081/api")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(5))
