@@ -1,4 +1,4 @@
 package ru.gpb.app.dto;
 
-public record CreateUserRequest(long userId) {
+public record CreateUserRequest(long userId, String userName) {
 }

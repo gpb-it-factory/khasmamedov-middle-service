@@ -30,9 +30,9 @@ class UserMiddleServiceTest {
 
     @BeforeAll
     static void setUp() {
-        properRequestId = new CreateUserRequest(868047670);
-        improperRequestId = new CreateUserRequest(1234567890);
-        wrongRequestId = new CreateUserRequest(-1234567890);
+        properRequestId = new CreateUserRequest(868047670, "Khasmamedov");
+        improperRequestId = new CreateUserRequest(1234567890, "Khasmamedov");
+        wrongRequestId = new CreateUserRequest(-1234567890, "Khasmamedov");
     }
 
     @Test
