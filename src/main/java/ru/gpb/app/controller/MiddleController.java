@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/v2/api")
 public class MiddleController {
 
     private final UserMiddleService userMiddleService;
