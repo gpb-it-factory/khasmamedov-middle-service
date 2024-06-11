@@ -41,7 +41,7 @@ class MiddleControllerTest {
         when(userMiddleService.createUser(properRequestId)).thenReturn(true);
 
         mockMvc.perform(MockMvcRequestBuilders
-                        .post("/api/users")
+                        .post("/v2/api/users")
                         .content(asJsonString(properRequestId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -55,7 +55,7 @@ class MiddleControllerTest {
         when(userMiddleService.createUser(improperRequestId)).thenReturn(false);
 
         mockMvc.perform(MockMvcRequestBuilders
-                        .post("/api/users")
+                        .post("/v2/api/users")
                         .content(asJsonString(improperRequestId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -73,7 +73,7 @@ class MiddleControllerTest {
         when(userMiddleService.createUser(wrongRequestId)).thenThrow(new RuntimeException("Some error"));
 
         mockMvc.perform(MockMvcRequestBuilders
-                        .post("/api/users")
+                        .post("/v2/api/users")
                         .content(asJsonString(wrongRequestId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
