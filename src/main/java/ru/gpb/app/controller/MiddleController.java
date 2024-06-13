@@ -10,12 +10,12 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import ru.gpb.app.dto.CreateUserRequest;
 import ru.gpb.app.dto.Error;
-import ru.gpb.app.dto.UserResponse;
+import ru.gpb.app.service.UserCheckStatus;
 import ru.gpb.app.service.UserMiddleService;
 
 import javax.validation.Valid;
-import java.util.Optional;
 import java.util.UUID;
+
 @Slf4j
 @Validated
 @RestController
@@ -31,22 +31,63 @@ public class MiddleController {
 
     @PostMapping("/users")
     public ResponseEntity<?> createUser(@RequestBody @Valid CreateUserRequest request) {
+        ResponseEntity<?> responseEntity;
+
         try {
-            boolean userCreated = userMiddleService.createUser(request);
-            if (userCreated) {
-                return ResponseEntity.noContent().build();
-            } else {
-                Error error = new Error("Ошибка регистрации пользователя", "UserCreationError", "500", UUID.randomUUID());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(error);
+            UserCheckStatus userRegistrationStatus = userMiddleService.isUserRegistered(request.userId());
+            Error error;
+            switch (userRegistrationStatus) {
+                case REGISTERED:
+                    error = new Error(
+                            "Пользователь уже зарегистрирован",
+                            "CurrentUserIsAlreadyRegistered",
+                            "409",
+                            UUID.randomUUID()
+                    );
+                    responseEntity = ResponseEntity.status(HttpStatus.CONFLICT)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(error);
+
+                case ERROR:
+                    error = new Error(
+                            "Ошибка при проверке пользователя",
+                            "UserCheckingError",
+                            "500",
+                            UUID.randomUUID()
+                    );
+                    responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(error);
+
+                case NOT_REEGISTRED:
+                    boolean userCreated = userMiddleService.createUser(request);
+                    if (userCreated) {
+                        responseEntity = ResponseEntity.noContent().build();
+                    } else {
+                        error = new Error(
+                                "Ошибка регистрации пользователя",
+                                "UserCreationError",
+                                "500", UUID.randomUUID()
+                        );
+                        responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(error);
+                    }
             }
+            throw new IllegalStateException("Unexpected value: " + userRegistrationStatus);
         } catch (Exception e) {
-            Error error = new Error("Произошло что-то ужасное, но станет лучше, честно", "GeneralError", "123", UUID.randomUUID());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            Error error = new Error(
+                    "Произошло что-то ужасное, но станет лучше, честно",
+                    "GeneralError",
+                    "123",
+                    UUID.randomUUID()
+            );
+            responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(error);
         }
+
+        return responseEntity;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

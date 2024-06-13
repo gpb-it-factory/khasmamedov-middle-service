@@ -5,15 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import ru.gpb.app.dto.CreateUserRequest;
 import ru.gpb.app.dto.UserResponse;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -27,22 +23,48 @@ public class UserMiddleService {
     }
 
     public boolean createUser(CreateUserRequest request) {
+        boolean result;
+
         try {
             log.info("Sending request to service C");
             ResponseEntity<Void> response = restTemplate.postForEntity("/users", request, Void.class);
             if (response.getStatusCode() == HttpStatus.NO_CONTENT) {
                 log.info("Successfully send request to service C");
-                return true;
+                result = true;
             } else {
                 log.error("Unexpected code-response while user registration: {}", response.getStatusCode());
-                return false;
+                result = false;
             }
         } catch (HttpStatusCodeException e) {
-            log.error("HttpStatusCodeException exception in program: ", e);
-            return false;
+            log.error("HttpStatusCodeException happened in program: ", e);
+            result = false;
         } catch (Exception e) {
             log.error("Something serious happened in program: ", e);
-            return false;
+            result = false;
         }
+        return result;
+    }
+
+    public UserCheckStatus isUserRegistered(Long userId) {
+        UserCheckStatus userCheckStatus;
+
+        try {
+            HttpStatus statusCode =
+                    restTemplate.getForEntity("users/" + userId, UserResponse.class).getStatusCode();
+            if (statusCode == HttpStatus.OK) {
+                userCheckStatus = UserCheckStatus.REGISTERED;
+            } else if (statusCode == HttpStatus.NOT_FOUND) {
+                userCheckStatus = UserCheckStatus.NOT_REEGISTRED;
+            } else {
+                userCheckStatus = UserCheckStatus.ERROR;
+            }
+        } catch (RestClientException e) {
+            log.error("RestClientException happened in program: ", e);
+            userCheckStatus = UserCheckStatus.ERROR;
+        } catch (Exception e) {
+            log.error("Something serious happened in program: ", e);
+            userCheckStatus = UserCheckStatus.ERROR;
+        }
+        return userCheckStatus;
     }
 }
