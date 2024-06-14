@@ -10,7 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import ru.gpb.app.dto.CreateUserRequest;
 import ru.gpb.app.dto.Error;
-import ru.gpb.app.service.UserCheckStatus;
+import ru.gpb.app.service.UserCreationStatus;
 import ru.gpb.app.service.UserMiddleService;
 
 import javax.validation.Valid;
@@ -34,10 +34,13 @@ public class MiddleController {
         ResponseEntity<?> responseEntity;
 
         try {
-            UserCheckStatus userRegistrationStatus = userMiddleService.isUserRegistered(request.userId());
+            UserCreationStatus userCreationStatus = userMiddleService.createUser(request);
             Error error;
-            switch (userRegistrationStatus) {
-                case REGISTERED:
+            switch (userCreationStatus) {
+                case USER_CREATED -> {
+                    responseEntity = ResponseEntity.noContent().build();
+                }
+                case USER_ALREADY_EXISTS -> {
                     error = new Error(
                             "Пользователь уже зарегистрирован",
                             "CurrentUserIsAlreadyRegistered",
@@ -47,34 +50,22 @@ public class MiddleController {
                     responseEntity = ResponseEntity.status(HttpStatus.CONFLICT)
                             .contentType(MediaType.APPLICATION_JSON)
                             .body(error);
-
-                case ERROR:
+                }
+                case USER_ERROR -> {
                     error = new Error(
-                            "Ошибка при проверке пользователя",
-                            "UserCheckingError",
+                            "Ошибка при регистрации пользователя",
+                            "UserCreationError",
                             "500",
                             UUID.randomUUID()
                     );
                     responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                             .contentType(MediaType.APPLICATION_JSON)
                             .body(error);
-
-                case NOT_REEGISTRED:
-                    boolean userCreated = userMiddleService.createUser(request);
-                    if (userCreated) {
-                        responseEntity = ResponseEntity.noContent().build();
-                    } else {
-                        error = new Error(
-                                "Ошибка регистрации пользователя",
-                                "UserCreationError",
-                                "500", UUID.randomUUID()
-                        );
-                        responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .body(error);
-                    }
+                }
+                default -> {
+                    throw new IllegalStateException("Unexpected value: " + userCreationStatus);
+                }
             }
-            throw new IllegalStateException("Unexpected value: " + userRegistrationStatus);
         } catch (Exception e) {
             Error error = new Error(
                     "Произошло что-то ужасное, но станет лучше, честно",

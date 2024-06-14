@@ -7,17 +7,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import ru.gpb.app.dto.CreateUserRequest;
+import ru.gpb.app.service.UserCreationStatus;
 import ru.gpb.app.service.UserMiddleService;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@Disabled
 @WebMvcTest(MiddleController.class)
 class MiddleControllerTest {
 
@@ -40,7 +41,7 @@ class MiddleControllerTest {
 
     @Test
     public void createUserSuccess() throws Exception {
-        when(userMiddleService.createUser(properRequestId)).thenReturn(true);
+        when(userMiddleService.createUser(properRequestId)).thenReturn(UserCreationStatus.USER_CREATED);
 
         mockMvc.perform(MockMvcRequestBuilders
                         .post("/v2/api/users")
@@ -52,9 +53,27 @@ class MiddleControllerTest {
         verify(userMiddleService, times(1)).createUser(properRequestId);
     }
 
+
+    @Test
+    public void createUserWasWrongDueToAlreadyRegisteredUser() throws Exception {
+        when(userMiddleService.createUser(properRequestId)).thenReturn(UserCreationStatus.USER_ALREADY_EXISTS);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post("/v2/api/users")
+                        .content(asJsonString(properRequestId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Пользователь уже зарегистрирован"))
+                .andExpect(jsonPath("$.type").value("CurrentUserIsAlreadyRegistered"))
+                .andExpect(jsonPath("$.code").value("409"))
+                .andExpect(jsonPath("$.traceId").exists());
+
+        verify(userMiddleService, times(1)).createUser(properRequestId);
+    }
     @Test
     public void createUserNotCreatedDueToWrongData() throws Exception {
-        when(userMiddleService.createUser(improperRequestId)).thenReturn(false);
+        when(userMiddleService.createUser(improperRequestId)).thenReturn(UserCreationStatus.USER_ERROR);
 
         mockMvc.perform(MockMvcRequestBuilders
                         .post("/v2/api/users")
@@ -62,7 +81,7 @@ class MiddleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Ошибка регистрации пользователя"))
+                .andExpect(jsonPath("$.message").value("Ошибка при регистрации пользователя"))
                 .andExpect(jsonPath("$.type").value("UserCreationError"))
                 .andExpect(jsonPath("$.code").value("500"))
                 .andExpect(jsonPath("$.traceId").exists());
