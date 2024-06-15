@@ -31,7 +31,7 @@ public class MiddleController {
 
     @PostMapping("/users")
     public ResponseEntity<?> createUser(@RequestBody @Valid CreateUserRequest request) {
-        ResponseEntity<?> responseEntity;
+        ResponseEntity<?> responseEntity = null;
 
         try {
             UserCreationStatus userCreationStatus = userMiddleService.createUser(request);
@@ -61,9 +61,6 @@ public class MiddleController {
                     responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                             .contentType(MediaType.APPLICATION_JSON)
                             .body(error);
-                }
-                default -> {
-                    throw new IllegalStateException("Unexpected value: " + userCreationStatus);
                 }
             }
         } catch (Exception e) {
