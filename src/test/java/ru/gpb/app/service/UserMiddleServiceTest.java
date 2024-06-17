@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+import ru.gpb.app.dto.CreateAccountRequest;
 import ru.gpb.app.dto.CreateUserRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,82 +30,159 @@ class UserMiddleServiceTest {
     private static CreateUserRequest properRequestId;
     private static CreateUserRequest improperRequestId;
     private static CreateUserRequest wrongRequestId;
+    private static CreateAccountRequest properAccountRequest;
+    private static String accountCreateUrl;
+    private static String userCreateUrl;
 
     @BeforeAll
     static void setUp() {
-        properRequestId = new CreateUserRequest(868047670, "Khasmamedov");
-        improperRequestId = new CreateUserRequest(1234567890, "Khasmamedov");
-        wrongRequestId = new CreateUserRequest(-1234567890, "Khasmamedov");
+        properRequestId = new CreateUserRequest(868047670L, "Khasmamedov");
+        improperRequestId = new CreateUserRequest(1234567890L, "Khasmamedov");
+        wrongRequestId = new CreateUserRequest(-1234567890L, "Khasmamedov");
+        properAccountRequest = new CreateAccountRequest(
+                868047670L,
+                "Khasmamedov",
+                "My first awesome account"
+        );
+        accountCreateUrl = String.format("/users/%d/accounts", 868047670L);
+        userCreateUrl = "/users";
     }
 
     @Test
     public void createUserReturned204() {
         ResponseEntity<Void> response = new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        when(restTemplate.postForEntity("/users", properRequestId, Void.class))
+        when(restTemplate.postForEntity(userCreateUrl, properRequestId, Void.class))
                 .thenReturn(response);
 
         UserCreationStatus result = middleService.createUser(properRequestId);
 
         assertThat(result).isEqualTo(UserCreationStatus.USER_CREATED);
         verify(restTemplate, times(1))
-                .postForEntity("/users", properRequestId, Void.class);
+                .postForEntity(userCreateUrl, properRequestId, Void.class);
+    }
+
+    @Test
+    public void createAccountReturned204() {
+        ResponseEntity<Void> response = new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        when(restTemplate.postForEntity(accountCreateUrl, properAccountRequest, Void.class))
+                .thenReturn(response);
+
+        AccountCreationStatus result = middleService.createAccount(properAccountRequest);
+
+        assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_CREATED);
+        verify(restTemplate, times(1))
+                .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
     }
 
     @Test
     public void createUserReturned409() {
         ResponseEntity<Void> response = new ResponseEntity<>(HttpStatus.CONFLICT);
-        when(restTemplate.postForEntity("/users", properRequestId, Void.class))
+        when(restTemplate.postForEntity(userCreateUrl, properRequestId, Void.class))
                 .thenReturn(response);
 
         UserCreationStatus result = middleService.createUser(properRequestId);
 
         assertThat(result).isEqualTo(UserCreationStatus.USER_ALREADY_EXISTS);
         verify(restTemplate, times(1))
-                .postForEntity("/users", properRequestId, Void.class);
+                .postForEntity(userCreateUrl, properRequestId, Void.class);
     }
 
+    @Test
+    public void createAccountReturned409() {
+        ResponseEntity<Void> response = new ResponseEntity<>(HttpStatus.CONFLICT);
+        when(restTemplate.postForEntity(accountCreateUrl, properAccountRequest, Void.class))
+                .thenReturn(response);
+
+        AccountCreationStatus result = middleService.createAccount(properAccountRequest);
+
+        assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_ALREADY_EXISTS);
+        verify(restTemplate, times(1))
+                .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
+    }
 
     @Test
-    public void createUserReturnedNot204Or409() {
+    public void userCreateReturnedNot204Or409() {
         @SuppressWarnings("unchecked")
         ResponseEntity<Void> mockedResponse = mock(ResponseEntity.class);
         when(mockedResponse.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
-        when(restTemplate.postForEntity("/users", improperRequestId, Void.class))
+        when(restTemplate.postForEntity(userCreateUrl, improperRequestId, Void.class))
                 .thenReturn(mockedResponse);
 
         UserCreationStatus result = middleService.createUser(improperRequestId);
 
         assertThat(result).isEqualTo(UserCreationStatus.USER_ERROR);
         verify(restTemplate, times(1))
-                .postForEntity("/users", improperRequestId, Void.class);
+                .postForEntity(userCreateUrl, improperRequestId, Void.class);
     }
 
+    @Test
+    public void accountCreateReturnedNot204Or409() {
+        @SuppressWarnings("unchecked")
+        ResponseEntity<Void> mockedResponse = mock(ResponseEntity.class);
+        when(mockedResponse.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
+        when(restTemplate.postForEntity(accountCreateUrl, properAccountRequest, Void.class))
+                .thenReturn(mockedResponse);
+
+        AccountCreationStatus result = middleService.createAccount(properAccountRequest);
+
+        assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_ERROR);
+        verify(restTemplate, times(1))
+                .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
+    }
 
     @Test
     public void createUserResultedInHttpStatusCodeException() {
         HttpStatusCodeException httpStatusCodeException = new HttpStatusCodeException(HttpStatus.INTERNAL_SERVER_ERROR) {
         };
-        when(restTemplate.postForEntity("/users", wrongRequestId, Void.class))
+        when(restTemplate.postForEntity(userCreateUrl, wrongRequestId, Void.class))
                 .thenThrow(httpStatusCodeException);
 
         UserCreationStatus result = middleService.createUser(wrongRequestId);
 
-        assertEquals(UserCreationStatus.USER_ERROR, result);
+        assertThat(result).isEqualTo(UserCreationStatus.USER_ERROR);
         verify(restTemplate, times(1))
-                .postForEntity("/users", wrongRequestId, Void.class);
+                .postForEntity(userCreateUrl, wrongRequestId, Void.class);
+    }
+
+    @Test
+    public void createAccountResultedInHttpStatusCodeException() {
+        HttpStatusCodeException httpStatusCodeException = new HttpStatusCodeException(HttpStatus.INTERNAL_SERVER_ERROR) {
+        };
+        when(restTemplate.postForEntity(accountCreateUrl, properAccountRequest, Void.class))
+                .thenThrow(httpStatusCodeException);
+
+        AccountCreationStatus result = middleService.createAccount(properAccountRequest);
+
+        assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_ERROR);
+        verify(restTemplate, times(1))
+                .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
     }
 
     @Test
     public void createUserQuerySuccessfullySendAndReturnedGeneralException() {
         RuntimeException seriousException = new RuntimeException("Serious exception") {
         };
-        when(restTemplate.postForEntity("/users", wrongRequestId, Void.class))
+        when(restTemplate.postForEntity(userCreateUrl, wrongRequestId, Void.class))
                 .thenThrow(seriousException);
 
         UserCreationStatus result = middleService.createUser(wrongRequestId);
 
-        assertEquals(UserCreationStatus.USER_ERROR, result);
+        assertThat(result).isEqualTo(UserCreationStatus.USER_ERROR);
         verify(restTemplate, times(1))
-                .postForEntity("/users", wrongRequestId, Void.class);
+                .postForEntity(userCreateUrl, wrongRequestId, Void.class);
+    }
+
+    @Test
+    public void createAccountQuerySuccessfullySendAndReturnedGeneralException() {
+        RuntimeException seriousException = new RuntimeException("Serious exception") {
+        };
+        when(restTemplate.postForEntity(accountCreateUrl, properAccountRequest, Void.class))
+                .thenThrow(seriousException);
+
+        AccountCreationStatus result = middleService.createAccount(properAccountRequest);
+
+        assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_ERROR);
+        verify(restTemplate, times(1))
+                .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
     }
 }
