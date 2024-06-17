@@ -8,8 +8,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import ru.gpb.app.dto.CreateAccountRequest;
+import ru.gpb.app.dto.CreateAccountResponse;
 import ru.gpb.app.dto.CreateUserRequest;
 import ru.gpb.app.dto.Error;
+import ru.gpb.app.service.AccountCreationStatus;
 import ru.gpb.app.service.UserCreationStatus;
 import ru.gpb.app.service.UserMiddleService;
 
@@ -76,6 +79,70 @@ public class MiddleController {
         }
 
         return responseEntity;
+    }
+
+    @PostMapping("/accounts")
+    public ResponseEntity<?> createAccount(@RequestBody @Valid CreateAccountRequest request) {
+        ResponseEntity<?> responseEntity = null;
+
+        try {
+            UserCreationStatus userCreationStatus =
+                    userMiddleService.createUser(new CreateUserRequest(request.userId(), request.userName()));
+            Error error;
+            if (userCreationStatus != UserCreationStatus.USER_CREATED &&
+                    userCreationStatus != UserCreationStatus.USER_ALREADY_EXISTS) {
+                error = new Error(
+                        "Ошибка при регистрации пользователя",
+                        "UserCreationError",
+                        "500",
+                        UUID.randomUUID()
+                );
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(error);
+            }
+
+            AccountCreationStatus accountCreationStatus = userMiddleService.createAccount(request);
+            switch (accountCreationStatus) {
+                case ACCOUNT_CREATED -> {
+                    responseEntity = ResponseEntity.noContent().build();
+                }
+                case ACCOUNT_ALREADY_EXISTS -> {
+                    error = new Error(
+                            "Такой счет у данного пользователя уже есть",
+                            "AccountAlreadyExists",
+                            "409",
+                            UUID.randomUUID()
+                    );
+                    responseEntity = ResponseEntity.status(HttpStatus.CONFLICT)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(error);
+                }
+                case ACCOUNT_ERROR -> {
+                    error = new Error(
+                            "Ошибка при создании счета",
+                            "AccountCreationError",
+                            "500",
+                            UUID.randomUUID()
+                    );
+                    responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(error);
+                }
+            }
+        } catch (Exception e) {
+            Error error = new Error(
+                    "Произошло что-то ужасное, но станет лучше, честно",
+                    "GeneralError",
+                    "123",
+                    UUID.randomUUID()
+            );
+            responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(error);
+        }
+
+            return responseEntity;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
