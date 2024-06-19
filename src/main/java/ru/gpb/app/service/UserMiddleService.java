@@ -30,4 +30,12 @@ public class UserMiddleService {
     public AccountCreationStatus createAccount(CreateAccountRequest request) {
         return restBackClient.createAccount(request);
     }
+
+    public boolean getUserById(Long userId) {
+        return restBackClient.getUserById(userId);
+    }
+
+    public AccountRetreivalStatus getAccountsById(Long userId) {
+        return restBackClient.getAccounts(userId);
+    }
 }

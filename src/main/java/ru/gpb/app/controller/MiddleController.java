@@ -12,6 +12,7 @@ import ru.gpb.app.dto.CreateAccountRequest;
 import ru.gpb.app.dto.CreateUserRequest;
 import ru.gpb.app.dto.Error;
 import ru.gpb.app.service.AccountCreationStatus;
+import ru.gpb.app.service.AccountRetreivalStatus;
 import ru.gpb.app.service.UserCreationStatus;
 import ru.gpb.app.service.UserMiddleService;
 
@@ -113,6 +114,46 @@ public class MiddleController {
         } catch (Exception e) {
             responseEntity = globalExceptionHandler.handleGeneralException(e);
         }
+        return responseEntity;
+    }
+
+    private ResponseEntity<?> handlerForRetreivingAccounts(AccountRetreivalStatus accountRetreivalStatus) {
+        ResponseEntity<?> responseEntity = null;
+
+        switch (accountRetreivalStatus) {
+            case ACCOUNTS_FOUND -> responseEntity = ResponseEntity.ok(accountRetreivalStatus.getAccountListResponses());
+            case ACCOUNTS_NOT_FOUND -> responseEntity = ResponseEntity.noContent().build();
+            case ACCOUNTS_ERROR -> responseEntity = globalExceptionHandler.errorResponseEntityBuilder(
+                    "Ошибка при получении счетов",
+                    "AccountRetreivingError",
+                    "500",
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+
+        return responseEntity;
+    }
+
+    @GetMapping("users/{userId}/accounts")
+    public ResponseEntity<?> getAccount(@PathVariable Long userId) {
+        ResponseEntity<?> responseEntity;
+        try {
+            boolean userById = userMiddleService.getUserById(userId);
+            if (!userById) {
+                return globalExceptionHandler.errorResponseEntityBuilder(
+                        "Пользователь не найден",
+                        "UserCannotBeFound",
+                        "404",
+                        HttpStatus.NOT_FOUND
+                );
+            }
+
+            AccountRetreivalStatus accounts = userMiddleService.getAccountsById(userId);
+            responseEntity = handlerForRetreivingAccounts(accounts);
+        } catch (Exception e) {
+            responseEntity = globalExceptionHandler.handleGeneralException(e);
+        }
+
         return responseEntity;
     }
 }
