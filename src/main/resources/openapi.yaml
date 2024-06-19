@@ -40,12 +40,6 @@ paths:
       responses:
         '204':
           description: Пользователь создан
-        '409':
-          description: Пользователь уже зарегистрирован
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorV2'
         default:
           description: Непредвиденная ошибка
           content:
@@ -110,7 +104,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorV2'
 
-  /v2/users/{tg-username}:
+  /users/{tg-username}:
     get:
       operationId: getUserByTelegramUsernameV2
       summary: Получить пользователя по username в Telegram
@@ -218,12 +212,6 @@ paths:
       responses:
         '204':
           description: Счёт создан
-        '409':
-          description: Такой счет у данного пользователя уже есть
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorV2'
         default:
           description: Непредвиденная ошибка
           content:
