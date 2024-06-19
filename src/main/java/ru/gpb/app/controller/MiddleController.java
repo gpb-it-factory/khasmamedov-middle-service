@@ -9,7 +9,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import ru.gpb.app.dto.CreateAccountRequest;
-import ru.gpb.app.dto.CreateAccountResponse;
 import ru.gpb.app.dto.CreateUserRequest;
 import ru.gpb.app.dto.Error;
 import ru.gpb.app.service.AccountCreationStatus;
@@ -26,56 +25,67 @@ import java.util.UUID;
 public class MiddleController {
 
     private final UserMiddleService userMiddleService;
+    private final GlobalExceptionHandler globalExceptionHandler;
+
 
     @Autowired
-    public MiddleController(UserMiddleService userMiddleService) {
+    public MiddleController(UserMiddleService userMiddleService, GlobalExceptionHandler globalExceptionHandler) {
         this.userMiddleService = userMiddleService;
+        this.globalExceptionHandler = globalExceptionHandler;
+    }
+
+    private ResponseEntity<?> handlerForUserCreation(UserCreationStatus userCreationStatus) {
+        ResponseEntity<?> responseEntity = null;
+        switch (userCreationStatus) {
+            case USER_CREATED -> responseEntity = ResponseEntity.noContent().build();
+            case USER_ALREADY_EXISTS -> responseEntity = globalExceptionHandler.errorResponseEntityBuilder(
+                    "Пользователь уже зарегистрирован",
+                    "CurrentUserIsAlreadyRegistered",
+                    "409",
+                    HttpStatus.CONFLICT
+            );
+            case USER_ERROR -> responseEntity = globalExceptionHandler.errorResponseEntityBuilder(
+                    "Ошибка при регистрации пользователя",
+                    "UserCreationError",
+                    "500",
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+        return responseEntity;
     }
 
     @PostMapping("/users")
     public ResponseEntity<?> createUser(@RequestBody @Valid CreateUserRequest request) {
-        ResponseEntity<?> responseEntity = null;
+        ResponseEntity<?> responseEntity;
 
         try {
             UserCreationStatus userCreationStatus = userMiddleService.createUser(request);
-            Error error;
-            switch (userCreationStatus) {
-                case USER_CREATED -> {
-                    responseEntity = ResponseEntity.noContent().build();
-                }
-                case USER_ALREADY_EXISTS -> {
-                    error = new Error(
-                            "Пользователь уже зарегистрирован",
-                            "CurrentUserIsAlreadyRegistered",
-                            "409",
-                            UUID.randomUUID()
-                    );
-                    responseEntity = ResponseEntity.status(HttpStatus.CONFLICT)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .body(error);
-                }
-                case USER_ERROR -> {
-                    error = new Error(
-                            "Ошибка при регистрации пользователя",
-                            "UserCreationError",
-                            "500",
-                            UUID.randomUUID()
-                    );
-                    responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .body(error);
-                }
-            }
+            responseEntity = handlerForUserCreation(userCreationStatus);
         } catch (Exception e) {
-            Error error = new Error(
-                    "Произошло что-то ужасное, но станет лучше, честно",
-                    "GeneralError",
-                    "123",
-                    UUID.randomUUID()
+            responseEntity = globalExceptionHandler.handleGeneralException(e);
+        }
+
+        return responseEntity;
+    }
+
+    private ResponseEntity<?> handlerForAccountCreation(AccountCreationStatus accountCreationStatus) {
+        ResponseEntity<?> responseEntity = null;
+
+        switch (accountCreationStatus) {
+            case ACCOUNT_CREATED -> responseEntity = ResponseEntity.noContent().build();
+
+            case ACCOUNT_ALREADY_EXISTS -> responseEntity = globalExceptionHandler.errorResponseEntityBuilder(
+                    "Такой счет у данного пользователя уже есть",
+                    "AccountAlreadyExists",
+                    "409",
+                    HttpStatus.CONFLICT
             );
-            responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(error);
+            case ACCOUNT_ERROR -> responseEntity = globalExceptionHandler.errorResponseEntityBuilder(
+                    "Ошибка при создании счета",
+                    "AccountCreationError",
+                    "500",
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
 
         return responseEntity;
@@ -83,79 +93,26 @@ public class MiddleController {
 
     @PostMapping("/accounts")
     public ResponseEntity<?> createAccount(@RequestBody @Valid CreateAccountRequest request) {
-        ResponseEntity<?> responseEntity = null;
+        ResponseEntity<?> responseEntity;
 
         try {
             UserCreationStatus userCreationStatus =
                     userMiddleService.createUser(new CreateUserRequest(request.userId(), request.userName()));
-            Error error;
             if (userCreationStatus != UserCreationStatus.USER_CREATED &&
                     userCreationStatus != UserCreationStatus.USER_ALREADY_EXISTS) {
-                error = new Error(
+                return globalExceptionHandler.errorResponseEntityBuilder(
                         "Ошибка при регистрации пользователя",
                         "UserCreationError",
                         "500",
-                        UUID.randomUUID()
+                        HttpStatus.INTERNAL_SERVER_ERROR
                 );
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(error);
             }
 
             AccountCreationStatus accountCreationStatus = userMiddleService.createAccount(request);
-            switch (accountCreationStatus) {
-                case ACCOUNT_CREATED -> {
-                    responseEntity = ResponseEntity.noContent().build();
-                }
-                case ACCOUNT_ALREADY_EXISTS -> {
-                    error = new Error(
-                            "Такой счет у данного пользователя уже есть",
-                            "AccountAlreadyExists",
-                            "409",
-                            UUID.randomUUID()
-                    );
-                    responseEntity = ResponseEntity.status(HttpStatus.CONFLICT)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .body(error);
-                }
-                case ACCOUNT_ERROR -> {
-                    error = new Error(
-                            "Ошибка при создании счета",
-                            "AccountCreationError",
-                            "500",
-                            UUID.randomUUID()
-                    );
-                    responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .body(error);
-                }
-            }
+            responseEntity = handlerForAccountCreation(accountCreationStatus);
         } catch (Exception e) {
-            Error error = new Error(
-                    "Произошло что-то ужасное, но станет лучше, честно",
-                    "GeneralError",
-                    "123",
-                    UUID.randomUUID()
-            );
-            responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(error);
+            responseEntity = globalExceptionHandler.handleGeneralException(e);
         }
-
-            return responseEntity;
-    }
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    private ResponseEntity<Error> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        log.error("Validation error: ", ex);
-        Error error = new Error(
-                "Ошибка валидации данных",
-                "ValidationError",
-                "400",
-                UUID.randomUUID()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(error);
+        return responseEntity;
     }
 }
