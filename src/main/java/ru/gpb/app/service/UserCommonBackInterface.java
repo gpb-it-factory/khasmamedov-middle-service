@@ -6,5 +6,5 @@ public interface UserCommonBackInterface {
 
     UserCreationStatus createUser(CreateUserRequest request);
 
-    boolean getUserById(Long usedId);
+    UserRetrievalStatus getUserById(Long usedId);
 }

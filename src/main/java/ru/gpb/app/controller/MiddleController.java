@@ -3,21 +3,16 @@ package ru.gpb.app.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import ru.gpb.app.dto.CreateAccountRequest;
 import ru.gpb.app.dto.CreateUserRequest;
 import ru.gpb.app.dto.Error;
-import ru.gpb.app.service.AccountCreationStatus;
-import ru.gpb.app.service.AccountRetreivalStatus;
-import ru.gpb.app.service.UserCreationStatus;
-import ru.gpb.app.service.UserMiddleService;
+import ru.gpb.app.service.*;
 
 import javax.validation.Valid;
-import java.util.UUID;
+import java.util.Optional;
 
 @Slf4j
 @Validated
@@ -117,15 +112,34 @@ public class MiddleController {
         return responseEntity;
     }
 
-    private ResponseEntity<?> handlerForRetreivingAccounts(AccountRetreivalStatus accountRetreivalStatus) {
+    private Optional<ResponseEntity<Error>> checkUserRetrievalStatus(UserRetrievalStatus userRetrievalStatus) {
+        if (userRetrievalStatus == UserRetrievalStatus.USER_NOT_FOUND) {
+            return Optional.of(globalExceptionHandler.errorResponseEntityBuilder(
+                    "Пользователь не найден",
+                    "UserCannotBeFound",
+                    "404",
+                    HttpStatus.NOT_FOUND
+            ));
+        } else if (userRetrievalStatus == UserRetrievalStatus.USER_ERROR) {
+            return Optional.of(globalExceptionHandler.errorResponseEntityBuilder(
+                    "Ошибка при получении пользователя",
+                    "UserRetrievingError",
+                    "500",
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            ));
+        }
+        return Optional.empty();
+    }
+
+    private ResponseEntity<?> handlerForRetrievingAccounts(AccountRetrievalStatus accountRetrievalStatus) {
         ResponseEntity<?> responseEntity = null;
 
-        switch (accountRetreivalStatus) {
-            case ACCOUNTS_FOUND -> responseEntity = ResponseEntity.ok(accountRetreivalStatus.getAccountListResponses());
+        switch (accountRetrievalStatus) {
+            case ACCOUNTS_FOUND -> responseEntity = ResponseEntity.ok(accountRetrievalStatus.getAccountListResponses());
             case ACCOUNTS_NOT_FOUND -> responseEntity = ResponseEntity.noContent().build();
             case ACCOUNTS_ERROR -> responseEntity = globalExceptionHandler.errorResponseEntityBuilder(
                     "Ошибка при получении счетов",
-                    "AccountRetreivingError",
+                    "AccountRetrievingError",
                     "500",
                     HttpStatus.INTERNAL_SERVER_ERROR
             );
@@ -138,18 +152,15 @@ public class MiddleController {
     public ResponseEntity<?> getAccount(@PathVariable Long userId) {
         ResponseEntity<?> responseEntity;
         try {
-            boolean userById = userMiddleService.getUserById(userId);
-            if (!userById) {
-                return globalExceptionHandler.errorResponseEntityBuilder(
-                        "Пользователь не найден",
-                        "UserCannotBeFound",
-                        "404",
-                        HttpStatus.NOT_FOUND
-                );
+            UserRetrievalStatus userRetrievalStatus = userMiddleService.getUserById(userId);
+
+            Optional<ResponseEntity<Error>> retreivalStatus = checkUserRetrievalStatus(userRetrievalStatus);
+            if (retreivalStatus.isPresent()) {
+                return retreivalStatus.get();
             }
 
-            AccountRetreivalStatus accounts = userMiddleService.getAccountsById(userId);
-            responseEntity = handlerForRetreivingAccounts(accounts);
+            AccountRetrievalStatus accounts = userMiddleService.getAccountsById(userId);
+            responseEntity = handlerForRetrievingAccounts(accounts);
         } catch (Exception e) {
             responseEntity = globalExceptionHandler.handleGeneralException(e);
         }

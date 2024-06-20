@@ -6,16 +6,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 import ru.gpb.app.dto.CreateAccountRequest;
 import ru.gpb.app.dto.CreateUserRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,17 +28,20 @@ class UserMiddleServiceTest {
     private static String accountCreateUrl;
     private static String userCreateUrl;
 
+    private static Long userId;
+
     @BeforeAll
     static void setUp() {
-        properRequestId = new CreateUserRequest(868047670L, "Khasmamedov");
+        userId = 868047670L;
+        properRequestId = new CreateUserRequest(userId, "Khasmamedov");
         improperRequestId = new CreateUserRequest(1234567890L, "Khasmamedov");
         wrongRequestId = new CreateUserRequest(-1234567890L, "Khasmamedov");
         properAccountRequest = new CreateAccountRequest(
-                868047670L,
+                userId,
                 "Khasmamedov",
                 "My first awesome account"
         );
-        accountCreateUrl = String.format("/users/%d/accounts", 868047670L);
+        accountCreateUrl = String.format("/users/%d/accounts", userId);
         userCreateUrl = "/users";
     }
 
@@ -60,6 +57,17 @@ class UserMiddleServiceTest {
     }
 
     @Test
+    public void gettingUserByIdReturnedUser() {
+        when(restBackClient.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_FOUND);
+
+        UserRetrievalStatus result = restBackClient.getUserById(userId);
+
+        assertThat(UserRetrievalStatus.USER_FOUND).isEqualTo(result);
+        verify(restBackClient, times(1))
+                .getUserById(userId);
+    }
+
+    @Test
     public void createAccountWasOK() {
         when(restBackClient.createAccount(properAccountRequest)).thenReturn(AccountCreationStatus.ACCOUNT_CREATED);
 
@@ -68,6 +76,17 @@ class UserMiddleServiceTest {
         assertThat(AccountCreationStatus.ACCOUNT_CREATED).isEqualTo(result);
         verify(restBackClient, times(1))
                 .createAccount(properAccountRequest);
+    }
+
+    @Test
+    public void gettingAccountsByIdReturnedAccount() {
+        when(restBackClient.getAccountsById(userId)).thenReturn(AccountRetrievalStatus.ACCOUNTS_FOUND);
+
+        AccountRetrievalStatus result = restBackClient.getAccountsById(userId);
+
+        assertThat(AccountRetrievalStatus.ACCOUNTS_FOUND).isEqualTo(result);
+        verify(restBackClient, times(1))
+                .getAccountsById(userId);
     }
 
     @Test
@@ -92,8 +111,30 @@ class UserMiddleServiceTest {
                 .createAccount(properAccountRequest);
     }
 
+    @Test
+    public void gettingUserByIdDidNotReturnUser() {
+        when(restBackClient.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_NOT_FOUND);
+
+        UserRetrievalStatus result = restBackClient.getUserById(userId);
+
+        assertThat(UserRetrievalStatus.USER_NOT_FOUND).isEqualTo(result);
+        verify(restBackClient, times(1))
+                .getUserById(userId);
+    }
+
+    @Test
+    public void gettingAccountsByIdReturnedNoAccounts() {
+        when(restBackClient.getAccountsById(userId)).thenReturn(AccountRetrievalStatus.ACCOUNTS_NOT_FOUND);
+
+        AccountRetrievalStatus result = restBackClient.getAccountsById(userId);
+
+        assertThat(AccountRetrievalStatus.ACCOUNTS_NOT_FOUND).isEqualTo(result);
+        verify(restBackClient, times(1))
+                .getAccountsById(userId);
+    }
+
     /**
-     * Two following test cover the common variant of returned Error. Actual returned error is tested in RestBackClientTest
+     * Two following tests cover the common variant of returned Error. Actual returned error is tested in RestBackClientTest
      */
     @Test
     public void userCreateReturnedError() {
@@ -115,5 +156,27 @@ class UserMiddleServiceTest {
         assertThat(AccountCreationStatus.ACCOUNT_ERROR).isEqualTo(result);
         verify(restBackClient, times(1))
                 .createAccount(properAccountRequest);
+    }
+
+    @Test
+    public void gettingUserByIdReturnedError() {
+        when(restBackClient.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_ERROR);
+
+        UserRetrievalStatus result = restBackClient.getUserById(userId);
+
+        assertThat(UserRetrievalStatus.USER_ERROR).isEqualTo(result);
+        verify(restBackClient, times(1))
+                .getUserById(userId);
+    }
+
+    @Test
+    public void gettingAccountsByIdReturnedError() {
+        when(restBackClient.getAccountsById(userId)).thenReturn(AccountRetrievalStatus.ACCOUNTS_ERROR);
+
+        AccountRetrievalStatus result = restBackClient.getAccountsById(userId);
+
+        assertThat(AccountRetrievalStatus.ACCOUNTS_ERROR).isEqualTo(result);
+        verify(restBackClient, times(1))
+                .getAccountsById(userId);
     }
 }

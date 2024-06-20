@@ -4,7 +4,7 @@ import ru.gpb.app.dto.AccountListResponse;
 
 import java.util.List;
 
-public enum AccountRetreivalStatus {
+public enum AccountRetrievalStatus {
     ACCOUNTS_FOUND,
     ACCOUNTS_NOT_FOUND,
     ACCOUNTS_ERROR;
