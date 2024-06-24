@@ -25,20 +25,20 @@ public class RestBackClient implements UserCommonBackInterface, AccountCommonBac
     }
 
     private UserCreationStatus getUserCreationStatus(ResponseEntity<Void> response) {
-        UserCreationStatus userCreationStatus;
-
-        if (response.getStatusCode() == HttpStatus.NO_CONTENT) {
-            log.info("Successfully send request to service C for user creation");
-            userCreationStatus = UserCreationStatus.USER_CREATED;
-        } else if (response.getStatusCode() == HttpStatus.CONFLICT) {
-            log.warn("User already exists");
-            userCreationStatus = UserCreationStatus.USER_ALREADY_EXISTS;
-        } else {
-            log.error("Unexpected code-response while user registration: {}", response.getStatusCode());
-            userCreationStatus = UserCreationStatus.USER_ERROR;
-        }
-
-        return userCreationStatus;
+        return switch (response.getStatusCode()) {
+            case NO_CONTENT -> {
+                log.info("Successfully send request to service C for user creation");
+                yield UserCreationStatus.USER_CREATED;
+            }
+            case CONFLICT -> {
+                log.warn("User already exists");
+                yield UserCreationStatus.USER_ALREADY_EXISTS;
+            }
+            default -> {
+                log.error("Unexpected code-response while user registration: {}", response.getStatusCode());
+                yield UserCreationStatus.USER_ERROR;
+            }
+        };
     }
 
     @Override
@@ -61,21 +61,22 @@ public class RestBackClient implements UserCommonBackInterface, AccountCommonBac
     }
 
     private AccountCreationStatus getAccountCreationStatus(ResponseEntity<Void> response) {
-        AccountCreationStatus accountCreationStatus;
-
-        if (response.getStatusCode() == HttpStatus.NO_CONTENT) {
-            log.info("Successfully send request to service C for account creation");
-            accountCreationStatus = AccountCreationStatus.ACCOUNT_CREATED;
-        } else if (response.getStatusCode() == HttpStatus.CONFLICT) {
-            log.warn("Account already exists");
-            accountCreationStatus = AccountCreationStatus.ACCOUNT_ALREADY_EXISTS;
-        } else {
-            log.error("Unexpected code-response while account creation: {}", response.getStatusCode());
-            accountCreationStatus = AccountCreationStatus.ACCOUNT_ERROR;
-        }
-
-        return accountCreationStatus;
+        return switch (response.getStatusCode()) {
+            case NO_CONTENT -> {
+                log.info("Successfully send request to service C for account creation");
+                yield AccountCreationStatus.ACCOUNT_CREATED;
+            }
+            case CONFLICT -> {
+                log.warn("Account already exists");
+                yield AccountCreationStatus.ACCOUNT_ALREADY_EXISTS;
+            }
+            default -> {
+                log.error("Unexpected code-response while account creation: {}", response.getStatusCode());
+                yield AccountCreationStatus.ACCOUNT_ERROR;
+            }
+        };
     }
+
     @Override
     public AccountCreationStatus createAccount(CreateAccountRequest request) {
         AccountCreationStatus accountCreationStatus;

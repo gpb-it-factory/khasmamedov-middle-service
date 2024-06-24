@@ -40,6 +40,13 @@ public class GlobalExceptionHandler {
         );
     }
 
+    /**
+     * handleGeneralException - is specific ONLY for controller layer; you will see similar handling on service layer,
+     * and in a sense, it's the same, but only in approach.
+     * @param ex of type Exception
+     * @return errorResponseEntityBuilder with error and status
+     */
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Error> handleGeneralException(Exception ex) {
         log.error("General error: ", ex);
