@@ -89,58 +89,45 @@ public class MiddleController {
     }
 
     private Optional<ResponseEntity<Error>> checkUserRetrievalStatus(UserRetrievalStatus userRetrievalStatus) {
-        if (userRetrievalStatus == UserRetrievalStatus.USER_NOT_FOUND) {
-            return Optional.of(globalExceptionHandler.errorResponseEntityBuilder(
-                    "Пользователь не найден",
-                    "UserCannotBeFound",
-                    "404",
-                    HttpStatus.NOT_FOUND
-            ));
-        } else if (userRetrievalStatus == UserRetrievalStatus.USER_ERROR) {
-            return Optional.of(globalExceptionHandler.errorResponseEntityBuilder(
-                    "Ошибка при получении пользователя",
-                    "UserRetrievingError",
-                    "500",
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            ));
-        }
-        return Optional.empty();
+        return switch (userRetrievalStatus) {
+            case USER_NOT_FOUND -> Optional.of(globalExceptionHandler.errorResponseEntityBuilder(
+                            "Пользователь не найден",
+                            "UserCannotBeFound",
+                            "404",
+                            HttpStatus.NOT_FOUND
+                    )
+            );
+            case USER_ERROR -> Optional.of(globalExceptionHandler.errorResponseEntityBuilder(
+                            "Ошибка при получении пользователя",
+                            "UserRetrievingError",
+                            "500",
+                            HttpStatus.INTERNAL_SERVER_ERROR
+                    )
+            );
+            default -> Optional.empty();
+        };
     }
 
     private ResponseEntity<?> handlerForRetrievingAccounts(AccountRetrievalStatus accountRetrievalStatus) {
-        ResponseEntity<?> responseEntity = null;
-
-        switch (accountRetrievalStatus) {
-            case ACCOUNTS_FOUND -> responseEntity = ResponseEntity.ok(accountRetrievalStatus.getAccountListResponses());
-            case ACCOUNTS_NOT_FOUND -> responseEntity = ResponseEntity.noContent().build();
-            case ACCOUNTS_ERROR -> responseEntity = globalExceptionHandler.errorResponseEntityBuilder(
+        return switch (accountRetrievalStatus) {
+            case ACCOUNTS_FOUND -> ResponseEntity.ok(accountRetrievalStatus.getAccountListResponses());
+            case ACCOUNTS_NOT_FOUND -> ResponseEntity.noContent().build();
+            case ACCOUNTS_ERROR -> globalExceptionHandler.errorResponseEntityBuilder(
                     "Ошибка при получении счетов",
                     "AccountRetrievingError",
                     "500",
                     HttpStatus.INTERNAL_SERVER_ERROR
             );
-        }
-
-        return responseEntity;
+        };
     }
 
     @GetMapping("users/{userId}/accounts")
     public ResponseEntity<?> getAccount(@PathVariable Long userId) {
-        ResponseEntity<?> responseEntity;
-        try {
-            UserRetrievalStatus userRetrievalStatus = userMiddleService.getUserById(userId);
-
-            Optional<ResponseEntity<Error>> retreivalStatus = checkUserRetrievalStatus(userRetrievalStatus);
-            if (retreivalStatus.isPresent()) {
-                return retreivalStatus.get();
-            }
-
-            AccountRetrievalStatus accounts = userMiddleService.getAccountsById(userId);
-            responseEntity = handlerForRetrievingAccounts(accounts);
-        } catch (Exception e) {
-            responseEntity = globalExceptionHandler.handleGeneralException(e);
+        Optional<ResponseEntity<Error>> retreivalStatus = checkUserRetrievalStatus(userMiddleService.getUserById(userId));
+        if (retreivalStatus.isPresent()) {
+            return retreivalStatus.get();
         }
 
-        return responseEntity;
+        return handlerForRetrievingAccounts(userMiddleService.getAccountsById(userId));
     }
 }
