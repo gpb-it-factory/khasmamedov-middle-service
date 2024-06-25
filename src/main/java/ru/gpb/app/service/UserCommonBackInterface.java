@@ -4,5 +4,7 @@ import ru.gpb.app.dto.CreateUserRequest;
 
 public interface UserCommonBackInterface {
 
-    public UserCreationStatus createUser(CreateUserRequest request);
+    UserCreationStatus createUser(CreateUserRequest request);
+
+    UserRetrievalStatus getUserById(Long usedId);
 }

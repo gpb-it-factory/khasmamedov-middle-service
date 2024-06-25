@@ -2,20 +2,21 @@ package ru.gpb.app.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import ru.gpb.app.dto.AccountListResponse;
 import ru.gpb.app.dto.CreateAccountRequest;
 import ru.gpb.app.dto.CreateUserRequest;
-import ru.gpb.app.service.AccountCreationStatus;
-import ru.gpb.app.service.UserCreationStatus;
-import ru.gpb.app.service.UserMiddleService;
+import ru.gpb.app.service.*;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -39,16 +40,21 @@ class MiddleControllerTest {
     private static String accountCreateUrl;
     private static String userCreateUrl;
 
+    private static String getAccountsUrl;
+
+    private static Long userId;
+
     @BeforeAll
     static void setUp() {
-        properRequestId = new CreateUserRequest(868047670L, "Khasmamedov");
+        userId = 868047670L;
+        properRequestId = new CreateUserRequest(userId, "Khasmamedov");
         improperRequestId = new CreateUserRequest(1234567890L, "Khasmamedov");
         wrongRequestId = new CreateUserRequest(-1234567890L, "Khasmamedov");
         properAccountRequest = new CreateAccountRequest(
-                868047670L,
+                userId,
                 "Khasmamedov",
                 "My first awesome account"
-                );
+        );
         improperAccountRequest = new CreateAccountRequest(
                 1234567890L,
                 "Khasmamedov",
@@ -56,6 +62,7 @@ class MiddleControllerTest {
         );
         accountCreateUrl = "/v2/api/accounts";
         userCreateUrl = "/v2/api/users";
+        getAccountsUrl = String.format("/v2/api/users/%d/accounts", userId);
     }
 
     @Test
@@ -104,7 +111,6 @@ class MiddleControllerTest {
         verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
-
     @Test
     public void userWasNotCreatedDueToAlreadyRegisteredUser() throws Exception {
         when(userMiddleService.createUser(properRequestId)).thenReturn(UserCreationStatus.USER_ALREADY_EXISTS);
@@ -142,6 +148,7 @@ class MiddleControllerTest {
         verify(userMiddleService, times(1)).createUser(properRequestId);
         verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
+
     @Test
     public void userWasNotCreatedDueToWrongData() throws Exception {
         when(userMiddleService.createUser(improperRequestId)).thenReturn(UserCreationStatus.USER_ERROR);
@@ -362,7 +369,7 @@ class MiddleControllerTest {
     }
 
     @Test
-    public void accountWasNotCreatedDueToImproperAccountName2() throws Exception {
+    public void accountWasNotCreatedByIdDueToImproperAccountName2() throws Exception {
         CreateAccountRequest nullAccountNameRequest = new CreateAccountRequest(
                 868047670L,
                 "Khasmamedov",
@@ -383,6 +390,116 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.traceId").exists());
 
         verifyNoMoreInteractions(userMiddleService);
+    }
+
+    @Test
+    public void accountWasNotRetrievedByIdDueToNotFoundUser() throws Exception {
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_NOT_FOUND);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .get(getAccountsUrl)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Пользователь не найден"))
+                .andExpect(jsonPath("$.type").value("UserCannotBeFound"))
+                .andExpect(jsonPath("$.code").value("404"));
+
+        verify(userMiddleService, times(1)).getUserById(userId);
+    }
+
+    @Test
+    public void accountWasNotRetrievedByIdDueToErrorWhilstGettingUser() throws Exception {
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_ERROR);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .get(getAccountsUrl)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Ошибка при получении пользователя"))
+                .andExpect(jsonPath("$.type").value("UserRetrievingError"))
+                .andExpect(jsonPath("$.code").value("500"));
+
+        verify(userMiddleService, times(1)).getUserById(userId);
+    }
+
+    @Test
+    public void accountWithDataWasRetrievedById() throws Exception {
+        AccountListResponse[] accounts = new AccountListResponse[]{
+                new AccountListResponse(
+                        UUID.randomUUID(),
+                        "Деньги на шашлык",
+                        "203605.20"
+                )
+        };
+
+        AccountRetrievalStatus accountsFound = AccountRetrievalStatus.ACCOUNTS_FOUND;
+        accountsFound.setAccountListResponses(Arrays.asList(accounts));
+
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_FOUND);
+        when(userMiddleService.getAccountsById(userId)).thenReturn(accountsFound);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .get(getAccountsUrl)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].accountName").value("Деньги на шашлык"))
+                .andExpect(jsonPath("$[0].amount").value("203605.20"));
+
+        verify(userMiddleService, times(1)).getUserById(userId);
+        verify(userMiddleService, times(1)).getAccountsById(userId);
+    }
+
+    @Test
+    public void accountWithoutDataWasRetrievedById() throws Exception {
+        AccountRetrievalStatus accountsNotFound = AccountRetrievalStatus.ACCOUNTS_NOT_FOUND;
+        accountsNotFound.setAccountListResponses(Collections.emptyList());
+
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_FOUND);
+        when(userMiddleService.getAccountsById(userId)).thenReturn(accountsNotFound);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .get(getAccountsUrl)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+
+        verify(userMiddleService, times(1)).getUserById(userId);
+        verify(userMiddleService, times(1)).getAccountsById(userId);
+    }
+
+    @Test
+    public void accountWasNotRetrievedByIdDueToError() throws Exception {
+        AccountRetrievalStatus accountsError = AccountRetrievalStatus.ACCOUNTS_ERROR;
+
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_FOUND);
+        when(userMiddleService.getAccountsById(userId)).thenReturn(accountsError);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .get(getAccountsUrl)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Ошибка при получении счетов"))
+                .andExpect(jsonPath("$.type").value("AccountRetrievingError"))
+                .andExpect(jsonPath("$.code").value("500"));
+
+        verify(userMiddleService, times(1)).getUserById(userId);
+        verify(userMiddleService, times(1)).getAccountsById(userId);
+    }
+
+    @Test
+    public void accountWasNotRetrievedByIdDueToGeneralError() throws Exception {
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_FOUND);
+        when(userMiddleService.getAccountsById(userId)).thenThrow(new RuntimeException("Some error"));
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .get(getAccountsUrl))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Произошло что-то ужасное, но станет лучше, честно"))
+                .andExpect(jsonPath("$.type").value("GeneralError"))
+                .andExpect(jsonPath("$.code").value("123"))
+                .andExpect(jsonPath("$.traceId").exists());
+
+        verify(userMiddleService, times(1)).getUserById(userId);
+        verify(userMiddleService, times(1)).getAccountsById(userId);
     }
 
 

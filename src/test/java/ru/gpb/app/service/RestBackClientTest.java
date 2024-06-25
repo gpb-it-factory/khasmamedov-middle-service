@@ -9,9 +9,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import ru.gpb.app.dto.AccountListResponse;
 import ru.gpb.app.dto.CreateAccountRequest;
 import ru.gpb.app.dto.CreateUserRequest;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -31,19 +37,27 @@ class RestBackClientTest {
     private static CreateAccountRequest properAccountRequest;
     private static String accountCreateUrl;
     private static String userCreateUrl;
+    private static String gettingUserUrl;
+
+    private static String gettingAccountsUrl;
+
+    private static Long userId;
 
     @BeforeAll
     static void setUp() {
-        properRequestId = new CreateUserRequest(868047670L, "Khasmamedov");
+        userId = 868047670L;
+        properRequestId = new CreateUserRequest(userId, "Khasmamedov");
         improperRequestId = new CreateUserRequest(1234567890L, "Khasmamedov");
         wrongRequestId = new CreateUserRequest(-1234567890L, "Khasmamedov");
         properAccountRequest = new CreateAccountRequest(
-                868047670L,
+                userId,
                 "Khasmamedov",
                 "My first awesome account"
         );
-        accountCreateUrl = String.format("/users/%d/accounts", 868047670L);
+        accountCreateUrl = String.format("/users/%d/accounts", userId);
         userCreateUrl = "/users";
+        gettingUserUrl = String.format("/users/%d", userId);
+        gettingAccountsUrl = String.format("/users/%d/accounts", userId);
     }
 
     @Test
@@ -182,5 +196,131 @@ class RestBackClientTest {
         assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_ERROR);
         verify(restTemplate, times(1))
                 .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
+    }
+
+    /**
+     *
+     * group tests for retreiving user//account
+     */
+
+    @Test
+    public void gettingUserByIdWasSuccessful() {
+        ResponseEntity<Void> response = new ResponseEntity<>(HttpStatus.OK);
+        when(restTemplate.getForEntity(gettingUserUrl, Void.class))
+                .thenReturn(response);
+
+        UserRetrievalStatus result = restBackClientService.getUserById(userId);
+
+        assertThat(result).isEqualTo(UserRetrievalStatus.USER_FOUND);
+        verify(restTemplate, times(1))
+                .getForEntity(gettingUserUrl, Void.class);
+    }
+
+    @Test
+    public void gettingUserByIdWasUnsuccessful() {
+        @SuppressWarnings("unchecked")
+        ResponseEntity<Void> mockedResponse = mock(ResponseEntity.class);
+        when(mockedResponse.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
+        when(restTemplate.getForEntity(gettingUserUrl, Void.class))
+                .thenReturn(mockedResponse);
+
+        UserRetrievalStatus result = restBackClientService.getUserById(userId);
+
+        assertThat(result).isEqualTo(UserRetrievalStatus.USER_NOT_FOUND);
+        verify(restTemplate, times(1))
+                .getForEntity(gettingUserUrl, Void.class);
+    }
+
+    @Test
+    public void gettingUserByIdFacedHttpStatusCodeException() {
+        RestClientException restClientException = new RestClientException("Internal Server Error");
+
+        when(restTemplate.getForEntity(gettingUserUrl, Void.class))
+                .thenThrow(restClientException);
+
+        UserRetrievalStatus result = restBackClientService.getUserById(userId);
+
+        assertThat(result).isEqualTo(UserRetrievalStatus.USER_ERROR);
+        verify(restTemplate, times(1))
+                .getForEntity(gettingUserUrl, Void.class);
+    }
+
+    @Test
+    public void gettingUserByIdFacedGeneralException() {
+        RuntimeException seriousException = new RuntimeException("Serious exception") {
+        };
+        when(restTemplate.getForEntity(gettingUserUrl, Void.class)).thenThrow(seriousException);
+
+        UserRetrievalStatus result = restBackClientService.getUserById(userId);
+
+        assertThat(result).isEqualTo(UserRetrievalStatus.USER_ERROR);
+        verify(restTemplate, times(1))
+                .getForEntity(gettingUserUrl, Void.class);
+    }
+
+    @Test
+    public void gettingAccountsByIdWasSuccessful() {
+        AccountListResponse[] accounts = new AccountListResponse[]{
+                new AccountListResponse(
+                        UUID.randomUUID(),
+                        "Деньги на шашлык",
+                        "203605.20"
+                )
+        };
+        ResponseEntity<AccountListResponse[]> response = new ResponseEntity<>(accounts, HttpStatus.OK);
+        when(restTemplate.getForEntity(gettingAccountsUrl, AccountListResponse[].class))
+                .thenReturn(response);
+
+        AccountRetrievalStatus result = restBackClientService.getAccountsById(userId);
+
+        assertThat(result.getAccountListResponses())
+                .isEqualTo(Arrays.asList(accounts));
+        verify(restTemplate, times(1))
+                .getForEntity(gettingAccountsUrl, AccountListResponse[].class);
+    }
+
+    @Test
+    public void gettingAccountsByIdWasReturnedWithNoAccounts() {
+        AccountListResponse[] accounts = new AccountListResponse[]{};
+        ResponseEntity<AccountListResponse[]> response = new ResponseEntity<>(accounts, HttpStatus.OK);
+        when(restTemplate.getForEntity(gettingAccountsUrl, AccountListResponse[].class))
+                .thenReturn(response);
+
+        AccountRetrievalStatus result = restBackClientService.getAccountsById(userId);
+
+        assertThat(result)
+                .isEqualTo(AccountRetrievalStatus.ACCOUNTS_NOT_FOUND)
+                .extracting(AccountRetrievalStatus::getAccountListResponses)
+                .isEqualTo(Collections.emptyList());
+        verify(restTemplate, times(1))
+                .getForEntity(gettingAccountsUrl, AccountListResponse[].class);
+    }
+
+    @Test
+    public void gettingAccountsByIdFacedGeneralException() {
+        HttpStatusCodeException httpStatusCodeException = new HttpStatusCodeException(HttpStatus.INTERNAL_SERVER_ERROR) {
+        };
+        when(restTemplate.getForEntity(gettingAccountsUrl, AccountListResponse[].class))
+                .thenThrow(httpStatusCodeException);
+
+        AccountRetrievalStatus result = restBackClientService.getAccountsById(userId);
+
+        assertThat(result).isEqualTo(AccountRetrievalStatus.ACCOUNTS_ERROR);
+        verify(restTemplate, times(1))
+                .getForEntity(gettingAccountsUrl, AccountListResponse[].class);
+    }
+
+    @Test
+    public void gettingAccountsByIdFacedHttpStatusCodeException() {
+        RuntimeException seriousException = new RuntimeException("Serious exception") {
+        };
+        when(restTemplate.getForEntity(gettingAccountsUrl, AccountListResponse[].class))
+                .thenThrow(seriousException);
+
+        AccountRetrievalStatus result = restBackClientService.getAccountsById(userId);
+
+        assertThat(result).isEqualTo(AccountRetrievalStatus.ACCOUNTS_ERROR);
+        verify(restTemplate, times(1))
+                .getForEntity(gettingAccountsUrl, AccountListResponse[].class);
     }
 }

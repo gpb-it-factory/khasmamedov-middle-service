@@ -5,9 +5,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import ru.gpb.app.dto.AccountListResponse;
 import ru.gpb.app.dto.CreateAccountRequest;
 import ru.gpb.app.dto.CreateUserRequest;
+
+import java.util.Arrays;
+import java.util.Collections;
 
 @Slf4j
 @Service
@@ -90,5 +95,60 @@ public class RestBackClient implements UserCommonBackInterface, AccountCommonBac
         }
 
         return accountCreationStatus;
+    }
+
+    @Override
+    public UserRetrievalStatus getUserById(Long userId) {
+        UserRetrievalStatus userRetrievalStatus;
+
+        try {
+            String url = String.format("/users/%d", userId);
+            ResponseEntity<Void> response = restTemplate.getForEntity(url, Void.class);
+            log.info("Sending request to service C to check user");
+            if (response.getStatusCode() == HttpStatus.OK) {
+                log.info("Successfully send request to service C, user with {} is found", userId);
+                userRetrievalStatus = UserRetrievalStatus.USER_FOUND;
+            } else {
+                log.info("Successfully send request to service C, user with {} is not found", userId);
+                userRetrievalStatus = UserRetrievalStatus.USER_NOT_FOUND;
+            }
+        } catch (RestClientException e) {
+            log.error("RestClientException happened in program while checking if user is registered: ", e);
+            userRetrievalStatus = UserRetrievalStatus.USER_ERROR;
+        } catch (Exception e) {
+            log.error("Something serious happened in program while checking if user is registered: ", e);
+            userRetrievalStatus = UserRetrievalStatus.USER_ERROR;
+        }
+        return userRetrievalStatus;
+    }
+
+    @Override
+    public AccountRetrievalStatus getAccountsById(Long userId) {
+        log.info("Sending request to service C to get accounts for user {}", userId);
+
+        AccountRetrievalStatus accountRetrievalStatus = null;
+        try {
+            String url = String.format("/users/%d/accounts", userId);
+            ResponseEntity<AccountListResponse[]> accountsEntity = restTemplate.getForEntity(url, AccountListResponse[].class);
+            if (accountsEntity.getStatusCode() == HttpStatus.OK) {
+                AccountListResponse[] accounts = accountsEntity.getBody();
+                if (accounts != null && accounts.length > 0) {
+                    log.info("Successfully send request to service C, accounts for user with {} are found", userId);
+                    accountRetrievalStatus = AccountRetrievalStatus.ACCOUNTS_FOUND;
+                    accountRetrievalStatus.setAccountListResponses(Arrays.asList(accounts));
+                } else {
+                    log.info("Successfully send request to service C, NO accounts for user with {} are found", userId);
+                    accountRetrievalStatus = AccountRetrievalStatus.ACCOUNTS_NOT_FOUND;
+                    accountRetrievalStatus.setAccountListResponses(Collections.emptyList());
+                }
+            }
+        } catch (HttpStatusCodeException e) {
+            log.error("HttpStatusCodeException happened in program while retreiving accounts: ", e);
+            accountRetrievalStatus = AccountRetrievalStatus.ACCOUNTS_ERROR;
+        } catch (Exception e) {
+            log.error("Something serious happened in program while retreiving accounts: ", e);
+            accountRetrievalStatus = AccountRetrievalStatus.ACCOUNTS_ERROR;
+        }
+        return accountRetrievalStatus;
     }
 }
