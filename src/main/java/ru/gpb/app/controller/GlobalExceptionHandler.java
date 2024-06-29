@@ -19,13 +19,15 @@ public class GlobalExceptionHandler {
                                                              String messageType,
                                                              String errorCode,
                                                              HttpStatus status) {
-        return ResponseEntity.status(status)
+        ResponseEntity<Error> body = ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new Error(message,
                         messageType,
                         errorCode,
                         UUID.randomUUID()
                 ));
+        log.info("Returning response from middle service: " + body);
+        return body;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

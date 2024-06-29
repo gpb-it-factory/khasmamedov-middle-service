@@ -32,7 +32,8 @@ public class MiddleController {
     private ResponseEntity<?> handlerForUserCreation(UserCreationStatus userCreationStatus) {
         return switch (userCreationStatus) {
             case USER_CREATED -> ResponseEntity.noContent().build();
-            case USER_ALREADY_EXISTS -> globalExceptionHandler.errorResponseEntityBuilder(
+            case USER_ALREADY_EXISTS ->
+                    globalExceptionHandler.errorResponseEntityBuilder(
                     "Пользователь уже зарегистрирован",
                     "CurrentUserIsAlreadyRegistered",
                     "409",
