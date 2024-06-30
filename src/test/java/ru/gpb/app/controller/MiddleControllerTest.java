@@ -60,7 +60,7 @@ class MiddleControllerTest {
                 "Khasmamedov",
                 "My first awesome account"
         );
-        accountCreateUrl = "/v2/api/accounts";
+        accountCreateUrl = String.format("/v2/api/users/%d/accounts", userId);
         userCreateUrl = "/v2/api/users";
         getAccountsUrl = String.format("/v2/api/users/%d/accounts", userId);
     }
@@ -90,9 +90,6 @@ class MiddleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test

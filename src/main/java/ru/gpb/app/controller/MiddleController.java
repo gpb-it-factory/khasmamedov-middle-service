@@ -12,6 +12,7 @@ import ru.gpb.app.dto.Error;
 import ru.gpb.app.service.*;
 
 import javax.validation.Valid;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -71,7 +72,7 @@ public class MiddleController {
         };
     }
 
-    @PostMapping("/accounts")
+    @PostMapping("/users/{userId}/accounts")
     public ResponseEntity<?> createAccount(@RequestBody @Valid CreateAccountRequest request) {
         UserCreationStatus userCreationStatus = userMiddleService.
                 createUser(new CreateUserRequest(request.userId(), request.userName()));
