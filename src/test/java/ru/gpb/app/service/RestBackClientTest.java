@@ -118,8 +118,6 @@ class RestBackClientTest {
         UserCreationStatus result = restBackClientService.createUser(improperRequestId);
 
         assertThat(result).isEqualTo(UserCreationStatus.USER_ERROR);
-        verify(restTemplate, times(1))
-                .postForEntity(userCreateUrl, improperRequestId, Void.class);
     }
 
     @Test

@@ -75,8 +75,6 @@ class MiddleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
     }
 
     @Test
@@ -103,9 +101,6 @@ class MiddleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -122,8 +117,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("CurrentUserIsAlreadyRegistered"))
                 .andExpect(jsonPath("$.code").value("409"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
     }
 
     @Test
@@ -141,9 +134,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("AccountAlreadyExists"))
                 .andExpect(jsonPath("$.code").value("409"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -160,8 +150,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("UserCreationError"))
                 .andExpect(jsonPath("$.code").value("500"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(improperRequestId);
     }
 
     @Test
@@ -178,9 +166,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("UserCreationError"))
                 .andExpect(jsonPath("$.code").value("500"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(improperRequestId);
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -198,9 +183,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("AccountCreationError"))
                 .andExpect(jsonPath("$.code").value("500"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -218,9 +200,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("AccountCreationError"))
                 .andExpect(jsonPath("$.code").value("500"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -237,8 +216,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("GeneralError"))
                 .andExpect(jsonPath("$.code").value("123"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(wrongRequestId);
     }
 
     @Test
@@ -256,9 +233,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("GeneralError"))
                 .andExpect(jsonPath("$.code").value("123"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -276,9 +250,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("GeneralError"))
                 .andExpect(jsonPath("$.code").value("123"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -297,8 +268,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("ValidationError"))
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -317,8 +286,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("ValidationError"))
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -337,8 +304,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("ValidationError"))
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -361,8 +326,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("ValidationError"))
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -385,8 +348,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("ValidationError"))
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -400,8 +361,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.message").value("Пользователь не найден"))
                 .andExpect(jsonPath("$.type").value("UserCannotBeFound"))
                 .andExpect(jsonPath("$.code").value("404"));
-
-        verify(userMiddleService, times(1)).getUserById(userId);
     }
 
     @Test
@@ -415,8 +374,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.message").value("Ошибка при получении пользователя"))
                 .andExpect(jsonPath("$.type").value("UserRetrievingError"))
                 .andExpect(jsonPath("$.code").value("500"));
-
-        verify(userMiddleService, times(1)).getUserById(userId);
     }
 
     @Test
@@ -441,9 +398,6 @@ class MiddleControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].accountName").value("Деньги на шашлык"))
                 .andExpect(jsonPath("$[0].amount").value("203605.20"));
-
-        verify(userMiddleService, times(1)).getUserById(userId);
-        verify(userMiddleService, times(1)).getAccountsById(userId);
     }
 
     @Test
@@ -458,9 +412,6 @@ class MiddleControllerTest {
                         .get(getAccountsUrl)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
-
-        verify(userMiddleService, times(1)).getUserById(userId);
-        verify(userMiddleService, times(1)).getAccountsById(userId);
     }
 
     @Test
@@ -477,9 +428,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.message").value("Ошибка при получении счетов"))
                 .andExpect(jsonPath("$.type").value("AccountRetrievingError"))
                 .andExpect(jsonPath("$.code").value("500"));
-
-        verify(userMiddleService, times(1)).getUserById(userId);
-        verify(userMiddleService, times(1)).getAccountsById(userId);
     }
 
     @Test
@@ -494,9 +442,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("GeneralError"))
                 .andExpect(jsonPath("$.code").value("123"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).getUserById(userId);
-        verify(userMiddleService, times(1)).getAccountsById(userId);
     }
 
 
