@@ -130,6 +130,10 @@ public class MiddleController {
             return retreivalStatus.get();
         }
 
-        return handlerForRetrievingAccounts(userMiddleService.getAccountsById(userId));
+        AccountRetrievalStatus accountsById = userMiddleService.getAccountsById(userId);
+        if (accountsById == AccountRetrievalStatus.ACCOUNTS_NOT_FOUND) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Нет счетов у пользователя");
+        }
+        return handlerForRetrievingAccounts(accountsById);
     }
 }
