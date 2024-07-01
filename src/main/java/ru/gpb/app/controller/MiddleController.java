@@ -6,8 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.gpb.app.dto.CreateAccountRequest;
-import ru.gpb.app.dto.CreateUserRequest;
+import ru.gpb.app.dto.*;
 import ru.gpb.app.dto.Error;
 import ru.gpb.app.service.*;
 
@@ -135,5 +134,11 @@ public class MiddleController {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Нет счетов у пользователя");
         }
         return handlerForRetrievingAccounts(accountsById);
+    }
+
+    @PostMapping("/transfers")
+    public ResponseEntity<CreateTransferResponse> makeTransfer(@Valid @RequestBody CreateTransferRequest request) {
+        CreateTransferResponse response = new CreateTransferResponse("12345");
+        return ResponseEntity.ok(response);
     }
 }
