@@ -8,11 +8,14 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.gpb.app.dto.*;
 import ru.gpb.app.dto.Error;
+import ru.gpb.app.mapper.TransferRequestConverter;
 import ru.gpb.app.service.*;
 
 import javax.validation.Valid;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Validated
@@ -23,17 +26,19 @@ public class MiddleController {
     private final UserMiddleService userMiddleService;
     private final GlobalExceptionHandler globalExceptionHandler;
 
+    private final TransferRequestConverter converter;
+
     @Autowired
-    public MiddleController(UserMiddleService userMiddleService, GlobalExceptionHandler globalExceptionHandler) {
+    public MiddleController(UserMiddleService userMiddleService, GlobalExceptionHandler globalExceptionHandler, TransferRequestConverter converter) {
         this.userMiddleService = userMiddleService;
         this.globalExceptionHandler = globalExceptionHandler;
+        this.converter = converter;
     }
 
     private ResponseEntity<?> handlerForUserCreation(UserCreationStatus userCreationStatus) {
         return switch (userCreationStatus) {
             case USER_CREATED -> ResponseEntity.noContent().build();
-            case USER_ALREADY_EXISTS ->
-                    globalExceptionHandler.errorResponseEntityBuilder(
+            case USER_ALREADY_EXISTS -> globalExceptionHandler.errorResponseEntityBuilder(
                     "Пользователь уже зарегистрирован",
                     "CurrentUserIsAlreadyRegistered",
                     "409",
@@ -137,8 +142,42 @@ public class MiddleController {
     }
 
     @PostMapping("/transfers")
-    public ResponseEntity<CreateTransferResponse> makeTransfer(@Valid @RequestBody CreateTransferRequest request) {
-        CreateTransferResponse response = new CreateTransferResponse("12345");
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> makeTransfer(@Valid @RequestBody CreateTransferRequestDto request) {
+        ResponseEntity<?> firstUserAccounts = getAccount(request.firstUserId());
+
+        if (HttpStatus.NO_CONTENT == firstUserAccounts.getStatusCode()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new Error(
+                            "Аккаунт первого пользователя не найден",
+                            "AccountUserNumberOneNotFoundError",
+                            "404",
+                            UUID.randomUUID()
+                    )
+            );
+        } else if (HttpStatus.INTERNAL_SERVER_ERROR == firstUserAccounts.getStatusCode()) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new Error(
+                            "Ошибка при получении аккаунта первого пользователя",
+                            "AccountUserNumberOneRetrievalError",
+                            "500",
+                            UUID.randomUUID()
+                    )
+            );
+        }
+
+        List<AccountListResponse> accountData = (List<AccountListResponse>) firstUserAccounts.getBody();
+        if (accountData != null && !accountData.isEmpty()) {
+            BigDecimal accountMoney = BigDecimal.valueOf(Double.parseDouble(accountData.get(0).amount()));
+            BigDecimal transferMoney = BigDecimal.valueOf(Double.parseDouble(request.amount()));
+            if (accountMoney.compareTo(transferMoney) < 0) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                        new Error("Недостаточно средств на счету",
+                                "InsufficientFundsError",
+                                "400",
+                                UUID.randomUUID()));
+            }
+        }
+
+        return userMiddleService.makeTransfer(converter.convertToCreateTransferRequest(request));
     }
 }

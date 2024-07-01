@@ -8,22 +8,21 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-import ru.gpb.app.dto.AccountListResponse;
-import ru.gpb.app.dto.CreateAccountRequest;
-import ru.gpb.app.dto.CreateUserRequest;
+import ru.gpb.app.dto.*;
 
 import java.util.Arrays;
 import java.util.Collections;
 
 @Slf4j
 @Service
-public class RestBackClient implements UserCommonBackInterface, AccountCommonBackInterface {
+public class RestBackClient implements UserBackInterface, AccountBackInterface {
 
     private final RestTemplate restTemplate;
 
     public RestBackClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
+
     private UserCreationStatus getUserCreationStatus(ResponseEntity<Void> response) {
         UserCreationStatus userCreationStatus;
         if (HttpStatus.NO_CONTENT == response.getStatusCode()) {

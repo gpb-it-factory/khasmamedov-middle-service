@@ -1,8 +1,10 @@
 package ru.gpb.app.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import ru.gpb.app.dto.CreateAccountRequest;
+import ru.gpb.app.dto.CreateTransferRequest;
 import ru.gpb.app.dto.CreateUserRequest;
 
 @Service
@@ -10,9 +12,11 @@ import ru.gpb.app.dto.CreateUserRequest;
 public class UserMiddleService {
 
     private final RestBackClient restBackClient;
+    private final TransferBackInterface transferBackInterface;
 
-    public UserMiddleService(RestBackClient restBackClient) {
+    public UserMiddleService(RestBackClient restBackClient, TransferBackInterface transferBackInterface) {
         this.restBackClient = restBackClient;
+        this.transferBackInterface = transferBackInterface;
     }
 
     public UserCreationStatus createUser(CreateUserRequest request) {
@@ -29,5 +33,9 @@ public class UserMiddleService {
 
     public AccountRetrievalStatus getAccountsById(Long userId) {
         return restBackClient.getAccountsById(userId);
+    }
+
+    public ResponseEntity<?> makeTransfer(CreateTransferRequest request) {
+        return transferBackInterface.makeTransfer(request);
     }
 }
