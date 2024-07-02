@@ -10,6 +10,7 @@ import ru.gpb.app.dto.*;
 import ru.gpb.app.dto.Error;
 import ru.gpb.app.mapper.TransferRequestConverter;
 import ru.gpb.app.service.*;
+import ru.gpb.app.dto.Error;
 
 import javax.validation.Valid;
 import java.math.BigDecimal;
@@ -141,43 +142,67 @@ public class MiddleController {
         return handlerForRetrievingAccounts(accountsById);
     }
 
-    @PostMapping("/transfers")
-    public ResponseEntity<?> makeTransfer(@Valid @RequestBody CreateTransferRequestDto request) {
-        ResponseEntity<?> firstUserAccounts = getAccount(request.firstUserId());
-
+    private Optional<ResponseEntity<Error>> getErrorResponseEntity(ResponseEntity<?> firstUserAccounts) {
+        ResponseEntity<Error> error = null;
         if (HttpStatus.NO_CONTENT == firstUserAccounts.getStatusCode()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            return Optional.of(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     new Error(
                             "Аккаунт первого пользователя не найден",
                             "AccountUserNumberOneNotFoundError",
                             "404",
                             UUID.randomUUID()
                     )
-            );
-        } else if (HttpStatus.INTERNAL_SERVER_ERROR == firstUserAccounts.getStatusCode()) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    new Error(
-                            "Ошибка при получении аккаунта первого пользователя",
-                            "AccountUserNumberOneRetrievalError",
-                            "500",
-                            UUID.randomUUID()
-                    )
-            );
+            ));
         }
+        return Optional.empty();
+    }
 
-        List<AccountListResponse> accountData = (List<AccountListResponse>) firstUserAccounts.getBody();
+    private Optional<ResponseEntity<Error>> checkAccountFunds(CreateTransferRequestDto request, List<AccountListResponse> accountData) {
         if (accountData != null && !accountData.isEmpty()) {
             BigDecimal accountMoney = BigDecimal.valueOf(Double.parseDouble(accountData.get(0).amount()));
             BigDecimal transferMoney = BigDecimal.valueOf(Double.parseDouble(request.amount()));
             if (accountMoney.compareTo(transferMoney) < 0) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                return Optional.of(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                         new Error("Недостаточно средств на счету",
                                 "InsufficientFundsError",
                                 "400",
-                                UUID.randomUUID()));
+                                UUID.randomUUID())
+                ));
             }
         }
+        return Optional.empty();
+    }
 
-        return userMiddleService.makeTransfer(converter.convertToCreateTransferRequest(request));
+    @PostMapping("/transfers")
+    public ResponseEntity<?> makeTransfer(@Valid @RequestBody CreateTransferRequestDto request) {
+
+
+        log.info("Received transfer request: {}", request);
+
+        ResponseEntity<?> firstUserAccounts = getAccount(request.firstUserId());
+        log.info("First user accounts response: {}", firstUserAccounts);
+
+        Optional<ResponseEntity<Error>> possibleErrorForFirstUser = getErrorResponseEntity(firstUserAccounts);
+        if (possibleErrorForFirstUser.isPresent()) {
+            log.info("Error in first user accounts: {}", possibleErrorForFirstUser.get());
+            return possibleErrorForFirstUser.get();
+        }
+
+        if (firstUserAccounts.getBody() instanceof Error) {
+            return (ResponseEntity<Error>) firstUserAccounts;
+        }
+
+        List<AccountListResponse> accountData = (List<AccountListResponse>) firstUserAccounts.getBody();
+        log.info("Account data for first user: {}", accountData);
+
+        Optional<ResponseEntity<Error>> fundsProblem = checkAccountFunds(request, accountData);
+        if (fundsProblem.isPresent()) {
+            log.info("Funds problem: {}", fundsProblem.get());
+            return fundsProblem.get();
+        }
+
+        ResponseEntity<CreateTransferResponse> transferResponse = userMiddleService.makeTransfer(converter.convertToCreateTransferRequest(request));
+        log.info("Transfer response: {}", transferResponse);
+        return transferResponse;
     }
 }

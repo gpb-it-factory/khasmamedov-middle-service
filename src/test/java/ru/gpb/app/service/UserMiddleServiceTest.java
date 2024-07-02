@@ -1,24 +1,34 @@
 package ru.gpb.app.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import ru.gpb.app.dto.CreateAccountRequest;
+import ru.gpb.app.dto.CreateTransferRequest;
+import ru.gpb.app.dto.CreateTransferResponse;
 import ru.gpb.app.dto.CreateUserRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+@Slf4j
 @ExtendWith(MockitoExtension.class)
 class UserMiddleServiceTest {
 
     @Mock
     private RestBackClient restBackClient;
+
+    @Mock
+    private TransferBackInterface transferBackInterface;
 
     @InjectMocks
     private UserMiddleService middleService;
@@ -27,6 +37,9 @@ class UserMiddleServiceTest {
     private static CreateUserRequest improperRequestId;
     private static CreateAccountRequest properAccountRequest;
     private static Long userId;
+
+    private static CreateTransferRequest transferRequest;
+    private static CreateTransferResponse transferResponse;
 
     @BeforeAll
     static void setUp() {
@@ -38,6 +51,9 @@ class UserMiddleServiceTest {
                 "Khasmamedov",
                 "My first awesome account"
         );
+
+        transferRequest = new CreateTransferRequest("Khasmamedov", "Durov", "100");
+        transferResponse = new CreateTransferResponse("12345");
     }
 
     @Test
@@ -110,6 +126,33 @@ class UserMiddleServiceTest {
         AccountRetrievalStatus result = middleService.getAccountsById(userId);
 
         assertThat(AccountRetrievalStatus.ACCOUNTS_NOT_FOUND).isEqualTo(result);
+    }
+
+    @Test
+    public void makeTransferReturnedOK() {
+        when(transferBackInterface.makeTransfer(transferRequest)).thenReturn(new ResponseEntity<>(HttpStatus.OK));
+
+        ResponseEntity<CreateTransferResponse> result = middleService.makeTransfer(transferRequest);
+
+        assertThat(HttpStatus.OK).isEqualTo(result.getStatusCode());
+    }
+
+    @Test
+    public void makeTransferReturnedWithClientError() {
+        when(transferBackInterface.makeTransfer(transferRequest)).thenReturn(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
+
+        ResponseEntity<CreateTransferResponse> result = middleService.makeTransfer(transferRequest);
+
+        assertThat(HttpStatus.BAD_REQUEST).isEqualTo(result.getStatusCode());
+    }
+
+    @Test
+    public void makeTransferReturnedWithServerError() {
+        when(transferBackInterface.makeTransfer(transferRequest)).thenReturn(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
+
+        ResponseEntity<CreateTransferResponse> result = middleService.makeTransfer(transferRequest);
+
+        assertThat(HttpStatus.INTERNAL_SERVER_ERROR).isEqualTo(result.getStatusCode());;
     }
 
     /**

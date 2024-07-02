@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import ru.gpb.app.dto.CreateAccountRequest;
 import ru.gpb.app.dto.CreateTransferRequest;
+import ru.gpb.app.dto.CreateTransferResponse;
 import ru.gpb.app.dto.CreateUserRequest;
 
 @Service
@@ -35,7 +36,7 @@ public class UserMiddleService {
         return restBackClient.getAccountsById(userId);
     }
 
-    public ResponseEntity<?> makeTransfer(CreateTransferRequest request) {
+    public ResponseEntity<CreateTransferResponse> makeTransfer(CreateTransferRequest request) {
         return transferBackInterface.makeTransfer(request);
     }
 }
