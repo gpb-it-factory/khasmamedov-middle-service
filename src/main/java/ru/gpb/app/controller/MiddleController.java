@@ -173,10 +173,7 @@ public class MiddleController {
         return Optional.empty();
     }
 
-    @PostMapping("/transfers")
-    public ResponseEntity<?> makeTransfer(@Valid @RequestBody CreateTransferRequestDto request) {
-
-
+    private ResponseEntity<Error> problemsChecker(CreateTransferRequestDto request) {
         log.info("Received transfer request: {}", request);
 
         ResponseEntity<?> firstUserAccounts = getAccount(request.firstUserId());
@@ -199,6 +196,15 @@ public class MiddleController {
         if (fundsProblem.isPresent()) {
             log.info("Funds problem: {}", fundsProblem.get());
             return fundsProblem.get();
+        }
+        return null;
+    }
+
+    @PostMapping("/transfers")
+    public ResponseEntity<?> makeTransfer(@Valid @RequestBody CreateTransferRequestDto request) {
+        ResponseEntity<Error> possibleErrorForFirstUser = problemsChecker(request);
+        if (possibleErrorForFirstUser != null) {
+            return possibleErrorForFirstUser;
         }
 
         ResponseEntity<CreateTransferResponse> transferResponse = userMiddleService.makeTransfer(converter.convertToCreateTransferRequest(request));
